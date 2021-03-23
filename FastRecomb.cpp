@@ -125,8 +125,9 @@ int main(int argc, char* argv[]){
 	double minLength = 0.1;
 	int window_size = 1000;
 	bool smooth_itr = false;
+	bool only_end_point = false;
 	if (argc < 2){
-		cout << "Usage: ./FastRecomb -i <vcf_file> -o output_pbwt -L <genetic_length_cM_total> -d <min_length> -r <num_iteations>  -s [smooth iteration]\n";
+		cout << "Usage: ./FastRecomb -i <vcf_file> -o output_pbwt -L <genetic_length_cM_total> -d <min_length> -r <num_iteations>  -e [only endpoint] -s [smooth iteration]\n";
 		return 1;
 	}
 
@@ -170,7 +171,11 @@ int main(int argc, char* argv[]){
 			}
 		}
 		else if ((arg == "-s") || (arg == "--smooth_itr")) {
-				smooth_itr = true;
+			smooth_itr = true;
+
+		}
+		else if ((arg == "-e") || (arg == "--only_endpoint")) {
+			only_end_point = true;
 
 		}
 
@@ -360,7 +365,7 @@ int main(int argc, char* argv[]){
 					nb++;
 
 			}
-/*			if (na && nb){ // report matches
+			/*			if (na && nb){ // report matches
 				int t_m = 0;
 
 				for (unsigned int ia = i0; ia < M;ia++){
@@ -403,9 +408,29 @@ int main(int argc, char* argv[]){
 				if (genetic_map[dk_array[j]] > genetic_map[i] - min_length){
 					if (na && nb){
 						int total_match_here = min(na,nb);
+						bool na_true = true;
+						if (na != total_match_here)
+							na_true = false;
 						//	cout << "i:" << i << "," << "m2, "<<total_match_here << "\n";
 
 						block_matches_per_site.push_back(total_match_here);
+
+						for ( int ia = i0; ia < j;ia++){
+							if (!only_end_point  && na_true && bitVals_array[ak_array[ia]] == '0'){
+								double d_p = dk_array[ia];
+
+								int w_pre_pos = genomic_positions[d_p]/window_size;
+								recomb_rate_window_tmp[w_pre_pos] += 1;
+							}
+							else if (!only_end_point  && !na_true && bitVals_array[ak_array[ia]] == '1') {
+								double d_p = dk_array[ia];
+								int w_pre_pos = genomic_positions[d_p]/window_size;
+								recomb_rate_window_tmp[w_pre_pos] += 1;
+
+							}
+
+						}
+
 						//cout << total_match_here << "\n";
 						/*					for ( int ia = i0; ia < i;ia++){
 						for ( int ib = ia+1; ib < i ;ib++){
@@ -423,7 +448,7 @@ int main(int argc, char* argv[]){
 			}
 
 
-/*			if (na && nb){ // report matches
+			/*			if (na && nb){ // report matches
 				int t_m = 0;
 
 				for (unsigned int ia = i0; ia < M;ia++){
@@ -449,6 +474,9 @@ int main(int argc, char* argv[]){
 		}
 		//cout << "last site:" << genomic_positions[genomic_positions.size()-1] << "\n";
 		int counter = 0;
+		if (!only_end_point){
+			total_global_matches = total_global_matches * 2;
+		}
 		for (int w = 0; w < genomic_positions[genomic_positions.size()-1] ; w=w+window_size){
 			int median = (w + w + window_size) / 2;
 
