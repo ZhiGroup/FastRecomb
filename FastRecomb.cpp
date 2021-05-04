@@ -126,8 +126,9 @@ int main(int argc, char* argv[]){
 	int window_size = 1000;
 	bool smooth_itr = false;
 	bool only_end_point = false;
+	bool bi_directional = false;
 	if (argc < 2){
-		cout << "Usage: ./FastRecomb -i <vcf_file> -o output_pbwt -L <genetic_length_cM_total> -d <min_length> -r <num_iteations>  -e [only endpoint] -s [smooth iteration]\n";
+		cout << "Usage: ./FastRecomb -i <vcf_file> -o output_pbwt -L <genetic_length_cM_total> -w <window_size> -d <min_length> -r <num_iteations>  -e [only endpoint] -s [smooth iteration]\n";
 		return 1;
 	}
 
@@ -179,10 +180,17 @@ int main(int argc, char* argv[]){
 
 		}
 
+		else if ((arg == "-b") || (arg == "--bi_directional")) {
+			bi_directional = true;
+
+		}
+
 	}
 
+	// Read VCF file and create PBWT panel.
 	VCFParser vcf_parser;
 	ifstream input_vcf_file(input_vcf.c_str());
+
 	string line;
 	while (getline(input_vcf_file,line)){
 
@@ -207,27 +215,25 @@ int main(int argc, char* argv[]){
 	IncGenerator g(0);
 
 	std::generate( ak.begin(), ak.end(), g);
-	//cout << "ak ," << ak[2] << "\n";
 	ofstream out(output_file + ".pbwt", ios::binary);
 	ofstream out_raw(output_file + ".raw", ios::binary);
+	ofstream out_reverse(output_file + ".reverse.pbwt", ios::binary);
+
 
 	for (int j = 0; j < M; j++) {
 		out.write((char*)&ak[j], sizeof ak[j]);
-		//if (alleles[j] == '1')
-		//	bitVals[j] = 1;
-		//else
-		//	bitVals[j] = 0;
-	}
+		out_reverse.write((char*)&ak[j], sizeof ak[j]);
 
+	}
 
 	for (int j = 0; j < M+1; j++) {
 		out.write((char*)&dk[j], sizeof dk[j]);
-	}
+		out_reverse.write((char*)&dk[j], sizeof dk[j]);
 
+	}
 
 	vector<char> bitVals(M);
 	while (getline(input_vcf_file,line)){
-
 
 		int pos = vcf_parser.parse_line(line,maf,alleles,chr_name);
 		if (pos < 0){
@@ -242,8 +248,6 @@ int main(int argc, char* argv[]){
 				bitVals[j] = '0';
 		}
 
-		//cout << "k:" << k << "\n";
-		//cout << "MAF:" << maf << "\n";
 		k++;
 		build_prefix_divergence_array(ak,dk,alleles,k,ak1,dk1);
 
@@ -251,7 +255,6 @@ int main(int argc, char* argv[]){
 		dk = dk1;
 		// output
 		for (int i = 0; i < M; ++i) {
-			//cout << ak[i] << ",";
 			out.write((char*)&ak[i], sizeof ak[i]);
 		}
 
@@ -260,17 +263,46 @@ int main(int argc, char* argv[]){
 		}
 
 		for (int i = 0; i < M; ++i) {
-
-			// unsigned long n = bitVals.to_ulong() ;
 			out_raw.write((char*)&bitVals[i], sizeof(bitVals[i]) ) ;
 		}
-
-		//	cout << "\n";
 
 	}
 
 	out.close();
 	out_raw.close();
+
+	std::ifstream input_raw_tmp(output_file + ".raw",std::ios::binary);
+
+	// Read and compute revserse PBWT:
+	char* bitVals_array_tmp = new char[M];
+	vector<unsigned int> ak_b(M,0);
+	vector<unsigned int> dk_b(M+1,1);
+	vector<unsigned int> ak1_b(M,0);
+	vector<unsigned int> dk1_b(M+1,0);
+	IncGenerator g_b(0);
+	std::generate( ak_b.begin(), ak_b.end(), g_b);
+
+	input_raw_tmp.clear();
+	input_raw_tmp.seekg(0, ios::beg);
+	for (unsigned int k = 0; k < N; k++){
+		input_raw_tmp.clear();
+		input_raw_tmp.seekg(M*N -(k + 1)*M);
+		input_raw_tmp.read((char*)bitVals_array_tmp, sizeof(bitVals[0])*M  ) ;
+		std::vector<unsigned char> al(bitVals_array_tmp, bitVals_array_tmp + M);
+
+		build_prefix_divergence_array(ak_b,dk_b,al,k,ak1_b,dk1_b);
+
+		ak_b = ak1_b;
+		dk_b = dk1_b;
+		// output
+		for (int i = 0; i < M; ++i) {
+			out_reverse.write((char*)&ak_b[i], sizeof ak_b[i]);
+		}
+
+		for (int i = 0; i < M+1; ++i) {
+			out_reverse.write((char*)&dk_b[i], sizeof dk_b[i]);
+		}
+	}
 
 	N = genomic_positions.size();
 	double* genetic_map = new double[N+1];
@@ -279,10 +311,8 @@ int main(int argc, char* argv[]){
 
 
 	for (int w = 0; w < genomic_positions[genomic_positions.size()-1] ; w=w+window_size){
-		//recomb_rate_window_tmp[w] = 0;
 		int median = (w + w + window_size) / 2;
 		median_x_vals.push_back(median);
-		//median_y_vals.push_back(0);
 	}
 
 	vector<double> median_y_vals(median_x_vals.size(),0);
@@ -293,8 +323,6 @@ int main(int argc, char* argv[]){
 	}
 
 	genetic_map[N] = genetic_map[N-1];
-
-
 
 	unsigned int* ak_array = new unsigned int[M];
 	unsigned int* dk_array = new unsigned int[M+1];
@@ -317,22 +345,16 @@ int main(int argc, char* argv[]){
 		recomb_rate_window_old[median] = 1;
 	}
 
-
-
 	while (iteration_counter <= num_iterations){
 
 		for (int w = 0; w < genomic_positions[genomic_positions.size()-1] ; w=w+window_size){
 			recomb_rate_window_tmp[w/window_size] = 0;
-			//cout << w << "\n";
 		}
 
-
-		//cout << "read the pbwt file..\n";
 		ifstream input(output_file + ".pbwt", ios::binary);
+		ifstream input_reverse(output_file + ".reverse.pbwt", ios::binary);
+
 		std::ifstream input_raw(output_file + ".raw",std::ios::binary);
-
-
-
 
 		total_global_matches =0;
 
@@ -348,13 +370,7 @@ int main(int argc, char* argv[]){
 				if (genetic_map[dk_array[j]] > genetic_map[i] - min_length){
 					if (na && nb){
 						int total_match_here = min(na,nb);
-						//	cout << "i:" << i << "," << "m, "<<total_match_here << "\n";
 						total_global_matches += total_match_here;
-						/*					for ( int ia = i0; ia < i;ia++){
-						for ( int ib = ia+1; ib < i ;ib++){
-
-						}
-					}*/
 					}
 
 					na = 0 ; nb = 0 ; i0 = j ;
@@ -365,21 +381,33 @@ int main(int argc, char* argv[]){
 					nb++;
 
 			}
-			/*			if (na && nb){ // report matches
-				int t_m = 0;
 
-				for (unsigned int ia = i0; ia < M;ia++){
-					for (unsigned int ib = ia+1; ib < M ;ib++){
+		}
 
-						if (bitVals_array[ak_array[ia] != bitVals_array[ak_array[ib]]]){
-							t_m++;
-						}
-
-
+		// Compute total matches backwards:
+		for (int i = 0 ; i < N; i++){
+			na = 0;
+			nb = 0;
+			input_raw.seekg(M*N*sizeof(bitVals_array[0]) - (i+1)*M*sizeof(bitVals_array[0]));
+			input_raw.read((char*)bitVals_array, sizeof(bitVals[0])*M  ) ;
+			input_reverse.seekg(i* (sizeof(ak[i])*M + sizeof(dk[i])*(M+1)),ios_base::beg);
+			input_reverse.read((char*)ak_array, M * sizeof(ak[0]));
+			input_reverse.read((char*)dk_array, (M+1) * sizeof(dk[0]));
+			for (int j = 0; j < M ; j++){
+				if (genetic_map[dk_array[j]] > genetic_map[i] - min_length){
+					if (na && nb){
+						int total_match_here = min(na,nb);
+						total_global_matches += total_match_here;
 					}
+
+					na = 0 ; nb = 0 ; i0 = j ;
 				}
-				total_global_matches += t_m;
-			}*/
+				if (bitVals_array[ak_array[j]] == '0')
+					na++;
+				else
+					nb++;
+
+			}
 
 		}
 
@@ -390,10 +418,6 @@ int main(int argc, char* argv[]){
 		input.seekg(0, ios::beg);
 		na = 0;
 		nb = 0;
-		//input_raw.close();
-		//input_raw(output_file + ".raw",std::ios::binary);
-		//int total_matches_2 = 0;
-
 
 		for (int i = 0 ; i < N; i++){
 
@@ -403,6 +427,7 @@ int main(int argc, char* argv[]){
 			input.seekg(i* (sizeof(ak[i])*M + sizeof(dk[i])*(M+1)),ios_base::beg);
 			input.read((char*)ak_array, M * sizeof(ak[0]));
 			input.read((char*)dk_array, (M+1) * sizeof(dk[0]));
+
 			vector<int> block_matches_per_site;
 			for (int j = 0; j < M ; j++){
 				if (genetic_map[dk_array[j]] > genetic_map[i] - min_length){
@@ -411,7 +436,6 @@ int main(int argc, char* argv[]){
 						bool na_true = true;
 						if (na != total_match_here)
 							na_true = false;
-						//	cout << "i:" << i << "," << "m2, "<<total_match_here << "\n";
 
 						block_matches_per_site.push_back(total_match_here);
 
@@ -431,12 +455,48 @@ int main(int argc, char* argv[]){
 
 						}
 
-						//cout << total_match_here << "\n";
-						/*					for ( int ia = i0; ia < i;ia++){
-						for ( int ib = ia+1; ib < i ;ib++){
+					}
+
+					na = 0 ; nb = 0 ; i0 = j ;
+				}
+				if (bitVals_array[ak_array[j]] == '0')
+					na++;
+				else
+					nb++;
+			}
+
+			// backward matches using input_reverse:
+			na = 0;
+			nb = 0;
+			input_reverse.seekg((N-i-1)*(sizeof(ak[i])*M + sizeof(dk[i])*(M+1)),ios_base::beg);
+			input_reverse.read((char*)ak_array, M * sizeof(ak[0]));
+			input_reverse.read((char*)dk_array, (M+1) * sizeof(dk[0]));
+			for (int j = 0; j < M ; j++){
+				if (genetic_map[dk_array[j]] > genetic_map[i] - min_length){
+					if (na && nb){
+						int total_match_here = min(na,nb);
+						bool na_true = true;
+						if (na != total_match_here)
+							na_true = false;
+
+						block_matches_per_site.push_back(total_match_here);
+
+						for ( int ia = i0; ia < j;ia++){
+							if (!only_end_point  && na_true && bitVals_array[ak_array[ia]] == '0'){
+								double d_p = dk_array[ia];
+
+								int w_pre_pos = genomic_positions[d_p]/window_size;
+								recomb_rate_window_tmp[w_pre_pos] += 1;
+							}
+							else if (!only_end_point  && !na_true && bitVals_array[ak_array[ia]] == '1') {
+								double d_p = dk_array[ia];
+								int w_pre_pos = genomic_positions[d_p]/window_size;
+								recomb_rate_window_tmp[w_pre_pos] += 1;
+
+							}
 
 						}
-					}*/
+
 					}
 
 					na = 0 ; nb = 0 ; i0 = j ;
@@ -448,31 +508,15 @@ int main(int argc, char* argv[]){
 			}
 
 
-			/*			if (na && nb){ // report matches
-				int t_m = 0;
-
-				for (unsigned int ia = i0; ia < M;ia++){
-					for (unsigned int ib = ia+1; ib < M ;ib++){
-
-						if (bitVals_array[ak_array[ia] != bitVals_array[ak_array[ib]]]){
-							t_m++;
-						}
-
-
-					}
-				}
-				block_matches_per_site.push_back(t_m);
-			}*/
 			int sum_t = 0;
 			for (size_t l = 0; l < block_matches_per_site.size(); l++){
 				sum_t += block_matches_per_site[l];
 			}
 
-			//cout << sum_t << "\n";
 			int w_pos = genomic_positions[i]/window_size;
 			recomb_rate_window_tmp[w_pos] = recomb_rate_window_tmp[w_pos] + sum_t;
 		}
-		//cout << "last site:" << genomic_positions[genomic_positions.size()-1] << "\n";
+
 		int counter = 0;
 		if (!only_end_point){
 			total_global_matches = total_global_matches * 2;
@@ -481,7 +525,6 @@ int main(int argc, char* argv[]){
 			int median = (w + w + window_size) / 2;
 
 			recomb_rate_window[median] = (recomb_rate_window_tmp[w/window_size]/double(total_global_matches)) * (centiMoragen_length/(double(window_size)/1000000.0));
-			//cout << "rate in window: " << median <<"\t" << recomb_rate_window[median] <<"\t" << recomb_rate_window_tmp[w] << "\n";
 			double prev_gen_location = 0 ;
 
 			if (counter > 0){
@@ -494,18 +537,15 @@ int main(int argc, char* argv[]){
 				recomb_rate_window_old[median] = recomb_rate_window[median];
 			}
 			double genetic_map_value = (recomb_rate_window[median] * (double)window_size/1000000.0) + prev_gen_location;
-			//cout << recomb_rate_window_tmp[w/window_size] << ",";
 			median_y_vals[counter] = genetic_map_value;
 			counter++;
 
 		}
-		//cout << "\n";
 
 		for (size_t s = 0; s < genomic_positions.size(); s++){
 			double y = interpolate(median_x_vals,median_y_vals,genomic_positions[s],false);
 			genetic_map[s] = y;
 		}
-
 
 		iteration_counter++;
 		input.close();
@@ -520,11 +560,11 @@ int main(int argc, char* argv[]){
 	}
 
 	out.close();
-	//cout << "total matches: " << total_global_matches << "\n";
-	//input.close();
+
 	out_f.close();
 
 	delete[] genetic_map;
 	delete[] tmp_gen_map;
 	delete[] bitVals_array;
+	delete[] bitVals_array_tmp;
 }
