@@ -270,7 +270,7 @@ int main(int argc, char* argv[]){
 
 	out.close();
 	out_raw.close();
-
+	N = k;
 	std::ifstream input_raw_tmp(output_file + ".raw",std::ios::binary);
 
 	// Read and compute revserse PBWT:
