@@ -303,7 +303,7 @@ int main(int argc, char* argv[]){
 			out_reverse.write((char*)&dk_b[i], sizeof dk_b[i]);
 		}
 	}
-
+	out_reverse.close();
 	N = genomic_positions.size();
 	double* genetic_map = new double[N+1];
 	double* tmp_gen_map = new double[N+1];
