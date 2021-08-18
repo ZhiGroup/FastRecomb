@@ -7,11 +7,11 @@
 #include <bitset>
 #include <algorithm>
 
-#include "alglib/dataanalysis.h"
+//#include "alglib/dataanalysis.h"
 
 
 using namespace std;
-using namespace alglib;
+//using namespace alglib;
 
 
 
@@ -181,7 +181,8 @@ vector<int> compute_PBWT_arrays(string vcf_input_file, string output_file, int &
 		ak = ak1;
 		dk = dk1;
 		// output
-		for (int i = 0; i < M; ++i) {
+
+	for (int i = 0; i < M; ++i) {
 			out.write((char*)&ak[i], sizeof ak[i]);
 		}
 
@@ -189,9 +190,16 @@ vector<int> compute_PBWT_arrays(string vcf_input_file, string output_file, int &
 			out.write((char*)&dk[i], sizeof dk[i]);
 		}
 
+
 		for (int i = 0; i < M; ++i) {
 			out_raw.write((char*)&bitVals[i], sizeof(bitVals[i]) ) ;
 		}
+
+
+	//	out.write(reinterpret_cast<const char*>(&ak[0]), M*sizeof(ak[0]));
+	//	out.write(reinterpret_cast<const char*>(&dk[0]), (M+1)*sizeof(dk[0]));
+	//	out_raw.write(reinterpret_cast<const char*>(&bitVals[0]), M*sizeof(bitVals[0]));
+
 
 	}
 
@@ -263,15 +271,25 @@ void compute_revser_PBWT_array(string input_binary_file,string output_file, int 
 		ak_b = ak1_b;
 		dk_b = dk1_b;
 		// output
+
+
+
 		for (int i = 0; i < M; ++i) {
 			out_reverse.write((char*)&ak_b[i], sizeof ak_b[i]);
 		}
 
+
 		for (int i = 0; i < M+1; ++i) {
 			out_reverse.write((char*)&dk_b[i], sizeof dk_b[i]);
 		}
-	}
-	out_reverse.close();
+
+
+
+//		out_reverse.write(reinterpret_cast<const char*>(&ak_b[0]), ak_b.size()*sizeof(ak_b[0]));
+//		out_reverse.write(reinterpret_cast<const char*>(&dk_b[0]), dk_b.size()*sizeof(dk_b[0]));
+
+
+}
 	delete[] bitVals_array_tmp;
 
 }
@@ -283,14 +301,14 @@ int main(int argc, char* argv[]){
 	//
 	// Here we demonstrate EMA(0.5) filtering for time series.
 	//
-	real_1d_array x = "[5,6,7,8]";
+	//real_1d_array x = "[5,6,7,8]";
 
 	//
 	// Apply filter.
 	// We should get [5, 5.5, 6.25, 7.125] as result
 	//
-	filterema(x, 0.5);
-	printf("%s\n", x.tostring(4).c_str()); // EXPECTED: [5,5.5,6.25,7.125]a
+	//filterema(x, 0.5);
+	//printf("%s\n", x.tostring(4).c_str()); // EXPECTED: [5,5.5,6.25,7.125]a
 
 	string input_vcf;
 	string output_file;
@@ -363,6 +381,7 @@ int main(int argc, char* argv[]){
 
 	int N = 0;
 	int M = 0;
+	//std::ios_base::sync_with_stdio(false);
 
 	vector<int> genomic_positions = compute_PBWT_arrays(input_vcf,output_file,N,M);
 	compute_revser_PBWT_array(output_file,output_file,N,M);
@@ -381,7 +400,7 @@ int main(int argc, char* argv[]){
 	vector<int> median_x_vals;
 
 
-	for (int w = 0; w < genomic_positions[genomic_positions.size()-1] ; w=w+window_size){
+	for (int w = 0; w < genomic_positions[genomic_positions.size()-1]; w=w+window_size){
 		int median = (w + w + window_size) / 2;
 		median_x_vals.push_back(median);
 	}
@@ -406,25 +425,30 @@ int main(int argc, char* argv[]){
 	char* bitVals_array = new char[M];
 	int iteration_counter = 1;
 
+	int total_windows = genomic_positions[genomic_positions.size()-1]/window_size;
 
-	std::map<int, double> num_cross_interval;
-	std::map<int, double> recomb_rate_window;
-	std::map<int,double> previous_recomb_rate_window;
-	std::map<int,double> pre_previous_recomb_rate_window;
+	vector<double> num_cross_interval(total_windows,0);
+	vector<double>  recomb_rate_window(total_windows,1);
+	vector<double>  previous_recomb_rate_window(total_windows,1);
+	vector<double>  pre_previous_recomb_rate_window(total_windows,1);
 
 
-	for (int w = 0; w < genomic_positions[genomic_positions.size()-1] ; w=w+window_size){
-		int median = (w + w + window_size) / 2;
+	for (int w = 0; w <= genomic_positions[genomic_positions.size()-1] ; w=w+window_size){
+		int median = w/window_size;//(w + w + window_size) / 2;
 		previous_recomb_rate_window[median] = 1;
+		recomb_rate_window[median] = 1;
+
 	}
 	vector<int> block(M), blockSize(M + 1), rBlock(M), rBlockSize(M + 1); // block[i] = block ID of sample i in the reverse PBWT; block IDs go from [1, M]
 	int block_id = 0;
 	while (iteration_counter <= num_iterations){
-
-		for (int w = 0; w < genomic_positions[genomic_positions.size()-1] ; w=w+window_size){
-			num_cross_interval[w/window_size] = 0;
+		cout << genomic_positions[genomic_positions.size()-1] << "\n";
+		for (int w = 0; w <= genomic_positions[genomic_positions.size()-1] ; w=w+window_size){
+			int v = w/window_size;
+			num_cross_interval[v] = 0;
 		}
 
+		cout << "read pbwt files..\n";
 		ifstream input(output_file + ".pbwt", ios::binary);
 		ifstream input_reverse(output_file + ".reverse.pbwt", ios::binary);
 		std::ifstream input_raw(output_file + ".raw",std::ios::binary);
@@ -432,11 +456,20 @@ int main(int argc, char* argv[]){
 
 		na = 0;
 		nb = 0;
+		int M_size = M * sizeof(unsigned int);
+		int M_plus_1_size = (M+1) * sizeof(unsigned int);
+		int both_sizes = M_size + M_plus_1_size;
+		int M_raw_size = sizeof(char)*M;
+		//input_reverse.clear();
 
+		//input_reverse.seekg(both_sizes*(N),ios_base::beg);
+
+		//input_reverse.seekg(-1 * both_sizes,ios_base::cur);
 		for (int i = 0 ; i < N; i++){
 
+			//input_reverse.seekg(both_sizes*(N-i),ios_base::beg);
 
-
+		//	cout << "i:" << i << "\n";
 			/**
 			cout << "a_"<< i <<": ";
 			output_matrix(ak_array,M);
@@ -445,12 +478,23 @@ int main(int argc, char* argv[]){
 			 **/
 			// read reverse PBWT:
 			int num_possible_recomb = 0;
+
 			input_reverse.clear();
 			input_reverse.seekg((N-i)* (sizeof(int)*M + sizeof(int)*(M+1)),ios_base::beg);
 			input_reverse.read((char*)ak_array, M * sizeof(int));
 			input_reverse.read((char*)dk_array, (M+1) * sizeof(int));
+
+
+//			input_reverse.read((char*)ak_array, M_size);
+
+			//input_reverse.read(reinterpret_cast<char*>(&ak_array[0]), M_size);
+
+//			input_reverse.read((char*)dk_array, M_plus_1_size);
+
+		//	input_reverse.read(reinterpret_cast<char*>(&dk_array[0]), M_plus_1_size);
+
 			block_id = 0;
-			vector<vector<int>> link(M, vector<int>(3));
+			vector<vector<int>> _link(M, vector<int>(3));
 
 			/**
 			cout << "a_"<< i <<": ";
@@ -461,7 +505,9 @@ int main(int argc, char* argv[]){
 			 **/
 			for (int j = 0; j < M ; j++){
 				//cout << "N: "<< N << ", and d_k: " << dk_array[j] << "\n";
-				if (genetic_map[N - dk_array[j]] > (genetic_map[N-1] - genetic_map[i]) - min_length){
+				if ( genetic_map[N - dk_array[j]] - genetic_map[i] <  min_length){
+
+			//	if (genetic_map[N - dk_array[j]] -(genetic_map[N-1] - genetic_map[i]) > min_length){
 					block_id++;
 				}
 
@@ -479,6 +525,19 @@ int main(int argc, char* argv[]){
 			input.seekg(i* (sizeof(int)*M + sizeof(int)*(M+1)),ios_base::beg);
 			input.read((char*)ak_array, M * sizeof(int));
 			input.read((char*)dk_array, (M+1) * sizeof(int));
+
+			//cout << "read raw data!\n";
+			//input_raw.read((char*)bitVals_array, M_raw_size) ;
+
+			//input_raw.read(reinterpret_cast<char*>(&bitVals_array[0]), M_raw_size);
+
+			//input.seekg(i* (sizeof(int)*M + sizeof(int)*(M+1)),ios_base::beg);
+			//input.read((char*)ak_array, M_size);
+			//input.read((char*)dk_array, M_plus_1_size);
+			//input.read(reinterpret_cast<char*>(&ak_array[0]), M_size);
+			//input.read(reinterpret_cast<char*>(&dk_array[0]), M_plus_1_size);
+
+			//cout << "rawe data were processed!\n";
 			int start = -1;
 			for (int j = 0; j < M ; j++){
 				if (genetic_map[dk_array[j]] > genetic_map[i] - min_length){
@@ -492,28 +551,33 @@ int main(int argc, char* argv[]){
 
 
 			for (int l = 0; l < M; ++l) {
-				link[l][0] = l, link[l][1] = block[l], link[l][2] = rBlock[l];
+				_link[l][0] = l, _link[l][1] = block[l], _link[l][2] = rBlock[l];
 			}
 
-			counting_sort(link, 2,M);
-			counting_sort(link, 1,M);
+			counting_sort(_link, 2,M);
+			counting_sort(_link, 1,M);
 
 
 			blockSize[block_id] = M - start;
 
 			for (int l = 1; l < M; ++l) {
 				//if (link[l][1] != link[l - 1][1] || link[l][2] != link[l - 1][2]) {
-				if (link[l][1] == link[l - 1][1] && link[l][2] != link[l - 1][2]) {
+				if (_link[l][1] == _link[l - 1][1] && _link[l][2] != _link[l - 1][2]) {
 					if (blockSize[l] > 1){
-						if (bitVals_array[ak_array[link[l-1][0]]] != bitVals_array[ak_array[link[l][0]]]){
+						if (bitVals_array[ak_array[_link[l-1][0]]] != bitVals_array[ak_array[_link[l][0]]]){
 							num_possible_recomb++;
-							total_global_matches += num_possible_recomb;
-							num_cross_interval[genomic_positions[i]/window_size] +=1;
+							//cout << "match:" << total_global_matches <<"\n";
+							num_cross_interval[genomic_positions[i]/window_size] = num_cross_interval[genomic_positions[i]/window_size]+1;
 						}
 					}
 
 				}
 			}
+			total_global_matches += num_possible_recomb;
+
+		//	if (i > 0)
+		//	input_reverse.seekg(-2 * both_sizes,ios_base::cur);
+
 
 		}
 
@@ -523,9 +587,15 @@ int main(int argc, char* argv[]){
 
 
 		for (int w = 0; w < genomic_positions[genomic_positions.size()-1] ; w=w+window_size){
-			int median = (w + w + window_size) / 2;
+			int median = w/window_size;//(w + w + window_size) / 2;
+			//cout << "w:" << w << "\n";
+			//cout << "median:" << median << "\n";
+			//cout << "index:" << w/window_size << "\n";
 
-			recomb_rate_window[median] = (num_cross_interval[w/window_size]/double(total_global_matches)) * (centiMoragen_length/(double(window_size)/1000000.0));
+			cout << "num_cross:" << num_cross_interval[w/window_size] << "\n";
+			cout << "total global:" << total_global_matches << "\n";
+
+			recomb_rate_window[w/window_size] = (num_cross_interval[w/window_size]/double(total_global_matches)) * (centiMoragen_length/(double(window_size)/1000000.0));
 			double prev_gen_location = 0 ;
 
 			if (counter > 0){
@@ -537,6 +607,7 @@ int main(int argc, char* argv[]){
 				previous_recomb_rate_window[median] = recomb_rate_window[median];
 			}
 			double genetic_map_value = (recomb_rate_window[median] * (double)window_size/1000000.0) + prev_gen_location;
+			//cout << genetic_map_value << "\n";
 			median_y_vals[counter] = genetic_map_value;
 			counter++;
 
@@ -565,14 +636,15 @@ int main(int argc, char* argv[]){
 
 	out_f << "Genomic Position\tRecombination Rate(cM/Mpbs)\tGenetic Location (cM)\n";
 	for (unsigned int j = 0; j < median_x_vals.size() ; j ++){
-		out_f << median_x_vals[j] << "\t" <<recomb_rate_window[median_x_vals[j]]  <<"\t"<< median_y_vals[j] << "\n";
+		out_f << median_x_vals[j] << "\t" <<recomb_rate_window[j]  <<"\t"<< median_y_vals[j] << "\n";
 	}
 
-	//out.close();
 
 	out_f.close();
-
+	delete[] ak_array;
+	delete[] dk_array;
 	delete[] genetic_map;
+	delete[] genetic_map_prev_prev;
 	delete[] tmp_gen_map;
 	delete[] bitVals_array;
 }
