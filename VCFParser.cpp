@@ -55,7 +55,7 @@ void VCFParser::set_num_samples(string &line){
 
 
 
-int VCFParser::parse_line(string &line,int &maf, vector<unsigned char>& output,string &chr_name){
+int VCFParser::parse_line(string &line,int &maf, vector<char>& output,string &chr_name){
 
 	string::size_type tmp_pos;
 

@@ -25,7 +25,7 @@ struct IncGenerator {
 /***
  * Create Prefix, Divergence arrays
  */
-void build_prefix_divergence_array(vector<unsigned int>& ak,vector<unsigned int>& dk,vector<unsigned char>&alleles, int k, vector<unsigned int> &ak1,vector<unsigned int>&dk1){
+void build_prefix_divergence_array(vector<unsigned int>& ak,vector<unsigned int>& dk,vector<char>&alleles, int k, vector<unsigned int> &ak1,vector<unsigned int>&dk1){
 
 	int M = alleles.size();
 	//cout << "M is " << M << "\n";
@@ -145,7 +145,7 @@ vector<int> compute_PBWT_arrays(string vcf_input_file, string output_file, int &
 	vector<int> genomic_positions;
 	int maf = 0;
 	string chr_name = "1";
-	vector<unsigned char> alleles(M,0);
+	vector<char> alleles(M,0);
 	IncGenerator g(0);
 
 	std::generate( ak.begin(), ak.end(), g);
@@ -265,7 +265,7 @@ void compute_revser_PBWT_array(string input_binary_file,string output_file, int 
 		input_raw_tmp.clear();
 		input_raw_tmp.seekg(M*N -(k + 1)*M);
 		input_raw_tmp.read((char*)bitVals_array_tmp, sizeof(bitVals[0])*M  ) ;
-		std::vector<unsigned char> al(bitVals_array_tmp, bitVals_array_tmp + M);
+		std::vector<char> al(bitVals_array_tmp, bitVals_array_tmp + M);
 
 		build_prefix_divergence_array(ak_b,dk_b,al,k,ak1_b,dk1_b);
 
@@ -487,7 +487,12 @@ int main(int argc, char* argv[]){
 			//	cout << "read :" << N- i -1 <<"\n";
 			input_reverse.clear();
 			// latest condi.		input_reverse.seekg((N-i)* (sizeof(int)*M + sizeof(int)*(M+1)),ios_base::beg);
-			input_reverse.seekg((N-i-1)* (sizeof(int)*M + sizeof(int)*(M)),ios_base::beg);
+			int indxx = N - i - 1 - 1;
+			if (indxx < 0) indxx =0;
+
+			input_reverse.seekg(indxx* (sizeof(int)*M + sizeof(int)*(M)),ios_base::beg);
+
+			// modifid input_reverse.seekg((N-i-1)* (sizeof(int)*M + sizeof(int)*(M)),ios_base::beg);
 
 			input_reverse.read((char*)ak_array, M * sizeof(int));
 			input_reverse.read((char*)dk_array, M * sizeof(int));
@@ -514,6 +519,7 @@ int main(int argc, char* argv[]){
 			 **/
 			for (int j = 0; j < M ; j++){
 				int indx_gen_map = N - dk_array[j]-1;
+						//cout << indx_gen_map << "\n";
 				if (indx_gen_map < 0)
 					indx_gen_map = 0;
 				//cout << "N: "<< N << ", and d_k: " << dk_array[j] << "\n";
@@ -531,9 +537,9 @@ int main(int argc, char* argv[]){
 			na = 0;
 			nb = 0;
 			input_raw.read((char*)bitVals_array, sizeof(char)*M  ) ;
-			input.clear();
+			//input.clear();
 			//cout << "read forward: " << i << "\n";
-			input.seekg(i* (sizeof(int)*M + sizeof(int)*(M)),ios_base::beg);
+			//input.seekg(i* (sizeof(int)*M + sizeof(int)*(M)),ios_base::beg);
 			input.read((char*)ak_array, M * sizeof(int));
 			input.read((char*)dk_array, M * sizeof(int));
 
@@ -577,13 +583,13 @@ int main(int argc, char* argv[]){
 			for (int l = 1; l < M; ++l) {
 				//if (link[l][1] != link[l - 1][1] || link[l][2] != link[l - 1][2]) {
 				if (_link[l][1] == _link[l - 1][1] && _link[l][2] != _link[l - 1][2]) {
-					if (blockSize[l] > 1){
+					//if (blockSize[l] > 1){
 						if (bitVals_array[ak_array[_link[l-1][0]]] != bitVals_array[ak_array[_link[l][0]]]){
 							num_possible_recomb++;
 							//cout << "match:" << total_global_matches <<"\n";
 							num_cross_interval[genomic_positions[i]/window_size] = num_cross_interval[genomic_positions[i]/window_size]+1;
 						}
-					}
+				//	}
 
 				}
 			}
@@ -600,13 +606,13 @@ int main(int argc, char* argv[]){
 			for (int l = 1; l < M; ++l) {
 				//if (link[l][1] != link[l - 1][1] || link[l][2] != link[l - 1][2]) {
 				if (_link[l][2] == _link[l - 1][2] && _link[l][1] != _link[l - 1][1]) {
-					if (rBlockSize[l] > 1){
-						if (bitVals_array[ak_array[_link[l-1][0]]] != bitVals_array[ak_array[_link[l][0]]]){
+				//	if (rBlockSize[l] > 1){
+						//if (bitVals_array[ak_array[_link[l-1][0]]] != bitVals_array[ak_array[_link[l][0]]]){
 							num_possible_recomb++;
 							//cout << "match:" << total_global_matches <<"\n";
 							num_cross_interval[genomic_positions[i]/window_size] = num_cross_interval[genomic_positions[i]/window_size]+1;
-						}
-					}
+					//	}
+				//	}
 
 				}
 			}
@@ -656,7 +662,9 @@ int main(int argc, char* argv[]){
 			double y = interpolate(median_x_vals,median_y_vals,genomic_positions[s],false);
 
 			if (iteration_counter >= 2){
-				genetic_map[s] = 0.5*(genetic_map_prev[s] + y);
+				genetic_map[s] =  y;
+// modified				genetic_map[s] = 0.5*(genetic_map_prev[s] + y);
+
 				genetic_map_prev[s] = y;
 			}
 			else{

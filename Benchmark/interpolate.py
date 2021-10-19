@@ -1,6 +1,6 @@
 import sys
 
-hapMap = open('/data6/playyard/william/simulate/sim1M_chr20.gmap', 'r')
+hapMap = open('sim1M_chr20.gmap', 'r')
 hapMap.readline() # remove header line
 
 mapping = open(sys.argv[1] + '.comp', 'w')
