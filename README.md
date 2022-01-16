@@ -3,7 +3,7 @@
 ###Usage:
 
 <pre>
-Usage: ./FastRecomb -i [vcf_file] -o output_pbwt -L [genetic_length_cM_total] -d [min_length] -r [num_iteations]
+Usage: ./FastRecomb -i [vcf_file] -o [output_folder] -L [genetic_length_cM_total] -d [min_length] -r [num_iteations]
 
 Required parameters:
 -i [input folder]
