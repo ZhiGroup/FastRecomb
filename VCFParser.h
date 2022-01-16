@@ -18,7 +18,7 @@ class VCFParser {
 public:
 	VCFParser();
 	virtual ~VCFParser();
-	int parse_line(string& line, int &maf, vector<char> &output,string &chr_name); // returns the genomic location if the line contains a valid genotype data, If so the minor allele frequency
+	int parse_line(string& line, int &maf, vector<unsigned char> &output,string &chr_name); // returns the genomic location if the line contains a valid genotype data, If so the minor allele frequency
 	// is computed and the values are stored in the output vector. Otherwise, -1
 
 	void set_num_samples(string& line);
