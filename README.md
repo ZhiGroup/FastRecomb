@@ -6,10 +6,10 @@
 Usage: ./FastRecomb -i [vcf_file] -o [output_folder] -L [genetic_length_cM_total] -d [min_length] -r [num_iteations]
 
 Required parameters:
--i [input folder]
+-i [vcf_file]
      Path to the VCF input file.
--o [output directory]
-        Output will be written to {output directory} including any intermediate file.
+-o [output_folder]
+        Output file will be written in output_folder including any intermediate file.
 -L [genetic_length_cM_total]
         The expected total length of the chromosome in cM.
 -d [min_length]
