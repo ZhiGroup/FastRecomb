@@ -1,6 +1,24 @@
 # FastRecomb
 
-###Usage:
+## Introduction
+FastRecomb is an efficient method to infer recombiantion rates using a biobank-scale haplotype panel. We recommend using P-smoother before running FastRecomb, epseically if the genotyping error rate is not low (e.g. > 0.1%).  The input file format for P-smoother and Fastrecomb is phased VCF.
+
+## Dependencies
+- C++ (at least GCC 5)  
+- GNU Make  
+
+## Installation
+To install the program clone the repository to a local folder using:
+
+`git clone https://github.com/ZhiGroup/FastRecomb.git`
+
+Enter the Debug folder and compile the program:
+
+`cd FastRecomb/Debug`  
+`make`
+
+
+## Usage:
 
 <pre>
 Usage: ./FastRecomb -i [vcf_file] -o [output_folder] -L [genetic_length_cM_total] -d [min_length] -r [num_iterations]
@@ -12,8 +30,14 @@ Required parameters:
         Output file will be written in output_folder including any intermediate file.
 -L [genetic_length_cM_total]
         The expected total length of the chromosome in cM.
+
+Optional parameters:
+
 -d [min_length]
-        Minimum genetic length of the haplotype matches.
+        Minimum genetic length of the haplotype matches. The minium length is 0.5 cM by default.
+
+-r [num_iterations]
+        Number of iterations. The values is set to 5 by default.
 
  </pre>
 
