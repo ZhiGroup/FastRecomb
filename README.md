@@ -39,7 +39,7 @@ Optional parameters:
 -r [num_iterations]
         Number of iterations. The values is set to 5 by default.
         
- -w [window_size]
+-w [window_size]
         Window size in bps. It is set to 5000 by default.
 
  </pre>
