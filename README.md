@@ -40,7 +40,7 @@ Optional parameters:
         Number of iterations. The values is set to 5 by default.
         
 -w [window_size]
-        Window size in bps. It is set to 5000 by default.
+        Window size in bps. It is set to 5000 by default. A recombination rate is calculated for each window across the chromosome.
 
  </pre>
 
