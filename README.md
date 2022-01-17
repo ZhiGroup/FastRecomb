@@ -21,7 +21,7 @@ Enter the Debug folder and compile the program:
 ## Usage:
 
 <pre>
-Usage: ./FastRecomb -i [vcf_file] -o [output_folder] -L [genetic_length_cM_total] -d [min_length] -r [num_iterations]
+Usage: ./FastRecomb -i [vcf_file] -o [output_folder] -L [genetic_length_cM_total] -d [min_length] -r [num_iterations] -w [window_size]
 
 Required parameters:
 -i [vcf_file]
@@ -38,6 +38,9 @@ Optional parameters:
 
 -r [num_iterations]
         Number of iterations. The values is set to 5 by default.
+        
+ -w [window_size]
+        Window size in bps. It is set to 5000 by default.
 
  </pre>
 
