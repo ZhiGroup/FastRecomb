@@ -121,13 +121,13 @@ int main(int argc, char* argv[]){
 	string input_vcf;
 	string output_file;
 	double centiMoragen_length = 70;
-	int num_iterations = 1;
-	double minLength = 0.1;
-	int window_size = 1000;
+	int num_iterations = 5;
+	double minLength = 0.5;
+	int window_size = 5000;
 	bool smooth_itr = false;
 	bool only_end_point = false;
 	if (argc < 2){
-		cout << "Usage: ./FastRecomb -i <vcf_file> -o output_pbwt -L <genetic_length_cM_total> -d <min_length> -r <num_iteations>  -e [only endpoint] -s [smooth iteration]\n";
+		cout << "Usage: ./FastRecomb -i <vcf_file> -o output_pbwt -L <genetic_length_cM_total> -d <min_length> -w <window_size> -r <num_iteations>  -e [only endpoint] -s [smooth iteration]\n";
 		return 1;
 	}
 
