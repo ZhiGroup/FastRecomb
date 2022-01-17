@@ -1,7 +1,7 @@
 # FastRecomb
 
 ## Introduction
-FastRecomb is an efficient method to infer recombiantion rates using a biobank-scale haplotype panel. We recommend using P-smoother before running FastRecomb, epseically if the genotyping error rate is not low (e.g. > 0.1%).  The input file format for P-smoother and Fastrecomb is phased VCF.
+FastRecomb is an efficient method to infer recombiantion rates using a biobank-scale haplotype panel. We recommend using P-smoother before running FastRecomb, epseically if the genotyping error rate is not low (e.g. > 0.1%).  The input file format for FastRecomb is phased VCF.
 
 ## Dependencies
 - C++ (at least GCC 5)  
